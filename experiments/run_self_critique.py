@@ -12,6 +12,7 @@ import json
 import sys
 import time
 from pathlib import Path
+import concurrent.futures
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -24,13 +25,75 @@ from experiments.helpers import (
     prepare_question,
     is_correct,
     save_results_jsonl,
-    create_experiment_metadata,
-)
+    create_experiment_metadata,def process_question(i, q, retriever, generator, critic, top_k):
+    q_start = time.time()
+    prepared = prepare_question(q)
 
+    # Step 1: Retrieve
+    retrieved = retriever.retrieve(prepared["question_text"], top_k=top_k)
+    context = "\n\n".join(
+        f"[Source {j} | {r.chunk_id} | {r.subject}]\n{r.text}"
+        for j, r in enumerate(retrieved, 1)
+    )
 
-def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_file: str | None = None):
+    # Step 2: Generate initial answer
+    gen_result = generator.generate(
+        question=prepared["question_text"],
+        choices=prepared["choices"],
+        context=context,
+    )
+
+    initial_answer = gen_result.get("answer", "E")
+    initial_answer_text = gen_result.get("answer_text", "")
+
+    # Step 3: Critique
+    critique_result = critic.critique(
+        question=prepared["question_text"],
+        answer=initial_answer,
+        answer_text=initial_answer_text,
+        context=context,
+    )
+
+    critique_status = critique_result.get("status", "UNCERTAIN")
+
+    # Step 4: Final answer
+    # If SUPPORTED, use initial answer.
+    # If UNCERTAIN/UNSUPPORTED, still use initial answer for System B
+    # (System C handles repair).
+    final_answer = initial_answer
+    final_answer_text = initial_answer_text
+
+    correct = is_correct(final_answer, prepared["correct_letter"])
+    q_time = time.time() - q_start
+
+    result = {
+        "question_index": i,
+        "question_text": prepared["question_text"],
+        "question_type": prepared["question_type"],
+        "subject": prepared["subject"],
+        "paragraph_id": prepared["paragraph_id"],
+        "choices": prepared["choices"],
+        "correct_letter": prepared["correct_letter"],
+        "correct_text": prepared["correct_text"],
+        "initial_answer": initial_answer,
+        "initial_answer_text": initial_answer_text,
+        "critique_status": critique_status,
+        "critique_reason": critique_result.get("reason", ""),
+        "critique_conflicting_info": critique_result.get("conflicting_info", ""),
+        "final_answer": final_answer,
+        "final_answer_text": final_answer_text,
+        "is_correct": correct,
+        "reasoning": gen_result.get("reasoning", ""),
+        "confidence": gen_result.get("confidence", ""),
+        "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
+        "latency_seconds": round(q_time, 3),
+        "error": gen_result.get("error", False) or critique_result.get("error", False),
+    }
+    return result, q_time
+
+def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_file: str | None = None, max_workers: int = 5):
     print("=" * 60)
-    print("System B — Self-Critique RAG")
+    print("System B — Self-Critique RAG (Parallel)")
     print("=" * 60)
 
     # Load dataset
@@ -42,7 +105,7 @@ def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_f
         questions = [questions[i] for i in indices]
     if num_questions:
         questions = questions[:num_questions]
-    print(f"Evaluating {len(questions)} questions")
+    print(f"Evaluating {len(questions)} questions with {max_workers} workers")
 
     # Init services
     retriever = Retriever()
@@ -55,80 +118,32 @@ def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_f
     critique_stats = {"SUPPORTED": 0, "UNCERTAIN": 0, "UNSUPPORTED": 0}
     start_time = time.time()
 
-    for i, q in enumerate(questions):
-        q_start = time.time()
-        prepared = prepare_question(q)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(process_question, i, q, retriever, generator, critic, top_k): i for i, q in enumerate(questions)}
+        
+        completed = 0
+        for future in concurrent.futures.as_completed(futures):
+            i = futures[future]
+            completed += 1
+            try:
+                result, q_time = future.result()
+                results.append(result)
+                
+                critique_status = result["critique_status"]
+                critique_stats[critique_status] = critique_stats.get(critique_status, 0) + 1
+                
+                if result["is_correct"]:
+                    correct_count += 1
+                
+                acc = correct_count / completed
+                print(f"  [{completed}/{len(questions)}] [Q{i}] {'PASS' if result['is_correct'] else 'FAIL'} "
+                      f"pred={result['final_answer']} correct={result['correct_letter']} "
+                      f"critique={critique_status} "
+                      f"acc={acc:.3f} time={q_time:.1f}s")
+            except Exception as exc:
+                print(f"Question {i} generated an exception: {exc}")
 
-        # Step 1: Retrieve
-        retrieved = retriever.retrieve(prepared["question_text"], top_k=top_k)
-        context = "\n\n".join(
-            f"[Source {j} | {r.chunk_id} | {r.subject}]\n{r.text}"
-            for j, r in enumerate(retrieved, 1)
-        )
-
-        # Step 2: Generate initial answer
-        gen_result = generator.generate(
-            question=prepared["question_text"],
-            choices=prepared["choices"],
-            context=context,
-        )
-
-        initial_answer = gen_result.get("answer", "E")
-        initial_answer_text = gen_result.get("answer_text", "")
-
-        # Step 3: Critique
-        critique_result = critic.critique(
-            question=prepared["question_text"],
-            answer=initial_answer,
-            answer_text=initial_answer_text,
-            context=context,
-        )
-
-        critique_status = critique_result.get("status", "UNCERTAIN")
-        critique_stats[critique_status] = critique_stats.get(critique_status, 0) + 1
-
-        # Step 4: Final answer
-        # If SUPPORTED, use initial answer.
-        # If UNCERTAIN/UNSUPPORTED, still use initial answer for System B
-        # (System C handles repair).
-        final_answer = initial_answer
-        final_answer_text = initial_answer_text
-
-        correct = is_correct(final_answer, prepared["correct_letter"])
-        if correct:
-            correct_count += 1
-
-        q_time = time.time() - q_start
-
-        result = {
-            "question_index": i,
-            "question_text": prepared["question_text"],
-            "question_type": prepared["question_type"],
-            "subject": prepared["subject"],
-            "paragraph_id": prepared["paragraph_id"],
-            "choices": prepared["choices"],
-            "correct_letter": prepared["correct_letter"],
-            "correct_text": prepared["correct_text"],
-            "initial_answer": initial_answer,
-            "initial_answer_text": initial_answer_text,
-            "critique_status": critique_status,
-            "critique_reason": critique_result.get("reason", ""),
-            "critique_conflicting_info": critique_result.get("conflicting_info", ""),
-            "final_answer": final_answer,
-            "final_answer_text": final_answer_text,
-            "is_correct": correct,
-            "reasoning": gen_result.get("reasoning", ""),
-            "confidence": gen_result.get("confidence", ""),
-            "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
-            "latency_seconds": round(q_time, 3),
-            "error": gen_result.get("error", False) or critique_result.get("error", False),
-        }
-        results.append(result)
-
-        print(f"  [{i+1}/{len(questions)}] {'PASS' if correct else 'FAIL'} "
-              f"pred={final_answer} correct={prepared['correct_letter']} "
-              f"critique={critique_status} "
-              f"acc={correct_count/(i+1):.3f} time={q_time:.1f}s")
+    results.sort(key=lambda x: x["question_index"])
 
     total_time = time.time() - start_time
 
@@ -155,12 +170,12 @@ def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_f
 
     return results, metadata
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Self-Critique RAG evaluation")
     parser.add_argument("--num_questions", type=int, default=None)
     parser.add_argument("--top_k", type=int, default=5)
     parser.add_argument("--sample_file", type=str, default=None)
+    parser.add_argument("--max_workers", type=int, default=5, help="Number of parallel threads")
     args = parser.parse_args()
 
-    run_self_critique(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file)
+    run_self_critique(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file, max_workers=args.max_workers)mple_file)

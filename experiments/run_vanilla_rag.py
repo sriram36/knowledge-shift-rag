@@ -12,6 +12,7 @@ import json
 import sys
 import time
 from pathlib import Path
+import concurrent.futures
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -27,9 +28,52 @@ from experiments.helpers import (
 )
 
 
-def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_file: str | None = None):
+def process_question(i, q, retriever, generator, top_k):
+    q_start = time.time()
+    prepared = prepare_question(q)
+
+    # Retrieve
+    retrieved = retriever.retrieve(prepared["question_text"], top_k=top_k)
+    context = "\n\n".join(
+        f"[Source {j} | {r.chunk_id} | {r.subject}]\n{r.text}"
+        for j, r in enumerate(retrieved, 1)
+    )
+
+    # Generate
+    gen_result = generator.generate(
+        question=prepared["question_text"],
+        choices=prepared["choices"],
+        context=context,
+    )
+
+    predicted = gen_result.get("answer", "E")
+    correct = is_correct(predicted, prepared["correct_letter"])
+    q_time = time.time() - q_start
+
+    result = {
+        "question_index": i,
+        "question_text": prepared["question_text"],
+        "question_type": prepared["question_type"],
+        "subject": prepared["subject"],
+        "paragraph_id": prepared["paragraph_id"],
+        "choices": prepared["choices"],
+        "correct_letter": prepared["correct_letter"],
+        "correct_text": prepared["correct_text"],
+        "predicted_letter": predicted,
+        "predicted_text": gen_result.get("answer_text", ""),
+        "is_correct": correct,
+        "reasoning": gen_result.get("reasoning", ""),
+        "confidence": gen_result.get("confidence", ""),
+        "source_ids": gen_result.get("source_ids", []),
+        "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
+        "latency_seconds": round(q_time, 3),
+        "error": gen_result.get("error", False),
+    }
+    return result, q_time
+
+def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_file: str | None = None, max_workers: int = 5):
     print("=" * 60)
-    print("System A — Vanilla RAG")
+    print("System A — Vanilla RAG (Parallel)")
     print("=" * 60)
 
     # Load dataset
@@ -41,7 +85,7 @@ def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_fil
         questions = [questions[i] for i in indices]
     if num_questions:
         questions = questions[:num_questions]
-    print(f"Evaluating {len(questions)} questions")
+    print(f"Evaluating {len(questions)} questions with {max_workers} workers")
 
     # Init retriever
     retriever = Retriever()
@@ -54,57 +98,28 @@ def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_fil
     correct_count = 0
     start_time = time.time()
 
-    for i, q in enumerate(questions):
-        q_start = time.time()
-        prepared = prepare_question(q)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(process_question, i, q, retriever, generator, top_k): i for i, q in enumerate(questions)}
+        
+        completed = 0
+        for future in concurrent.futures.as_completed(futures):
+            i = futures[future]
+            completed += 1
+            try:
+                result, q_time = future.result()
+                results.append(result)
+                if result["is_correct"]:
+                    correct_count += 1
+                
+                acc = correct_count / completed
+                print(f"  [{completed}/{len(questions)}] [Q{i}] {'PASS' if result['is_correct'] else 'FAIL'} "
+                      f"predicted={result['predicted_letter']} correct={result['correct_letter']} "
+                      f"acc={acc:.3f} time={q_time:.1f}s")
+            except Exception as exc:
+                print(f"Question {i} generated an exception: {exc}")
 
-        # Retrieve
-        retrieved = retriever.retrieve(prepared["question_text"], top_k=top_k)
-        context = "\n\n".join(
-            f"[Source {j} | {r.chunk_id} | {r.subject}]\n{r.text}"
-            for j, r in enumerate(retrieved, 1)
-        )
-
-        # Generate
-        gen_result = generator.generate(
-            question=prepared["question_text"],
-            choices=prepared["choices"],
-            context=context,
-        )
-
-        predicted = gen_result.get("answer", "E")
-        correct = is_correct(predicted, prepared["correct_letter"])
-        if correct:
-            correct_count += 1
-
-        q_time = time.time() - q_start
-
-        result = {
-            "question_index": i,
-            "question_text": prepared["question_text"],
-            "question_type": prepared["question_type"],
-            "subject": prepared["subject"],
-            "paragraph_id": prepared["paragraph_id"],
-            "choices": prepared["choices"],
-            "correct_letter": prepared["correct_letter"],
-            "correct_text": prepared["correct_text"],
-            "predicted_letter": predicted,
-            "predicted_text": gen_result.get("answer_text", ""),
-            "is_correct": correct,
-            "reasoning": gen_result.get("reasoning", ""),
-            "confidence": gen_result.get("confidence", ""),
-            "source_ids": gen_result.get("source_ids", []),
-            "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
-            "latency_seconds": round(q_time, 3),
-            "error": gen_result.get("error", False),
-        }
-        results.append(result)
-
-        # Progress
-        acc = correct_count / (i + 1)
-        print(f"  [{i+1}/{len(questions)}] {'PASS' if correct else 'FAIL'} "
-              f"predicted={predicted} correct={prepared['correct_letter']} "
-              f"acc={acc:.3f} time={q_time:.1f}s")
+    # Sort results by original question index for deterministic output
+    results.sort(key=lambda x: x["question_index"])
 
     total_time = time.time() - start_time
 
@@ -130,12 +145,12 @@ def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_fil
 
     return results, metadata
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Vanilla RAG evaluation")
     parser.add_argument("--num_questions", type=int, default=None, help="Number of questions to evaluate")
     parser.add_argument("--top_k", type=int, default=5, help="Number of chunks to retrieve")
     parser.add_argument("--sample_file", type=str, default=None, help="Path to JSON file with question indices")
+    parser.add_argument("--max_workers", type=int, default=5, help="Number of parallel threads")
     args = parser.parse_args()
 
-    run_vanilla_rag(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file)
+    run_vanilla_rag(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file, max_workers=args.max_workers)
