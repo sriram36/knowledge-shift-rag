@@ -92,7 +92,7 @@ class Critic:
             response = self.client.chat.completions.create(
                 model=self.model,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_completion_tokens=self.max_tokens,
                 messages=[
                     {"role": "system", "content": CRITIC_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
