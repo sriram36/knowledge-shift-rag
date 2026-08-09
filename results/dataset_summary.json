@@ -1,0 +1,67 @@
+{
+  "dataset": "KnowShiftQA",
+  "questions": {
+    "total": 3005,
+    "fields": [
+      "paragraph_info",
+      "type",
+      "updated_question",
+      "updated_paragraph",
+      "verified"
+    ],
+    "updated_question_subfields": [
+      "question",
+      "updated",
+      "random1",
+      "random2",
+      "random3"
+    ],
+    "types": {
+      "distant_implicit": 615,
+      "multihop_direct": 655,
+      "multihop_distant": 708,
+      "multihop_implicit": 417,
+      "simple_direct": 610
+    },
+    "subjects": {
+      "Biology": 873,
+      "Chemistry": 347,
+      "Geology": 690,
+      "History": 871,
+      "Physics": 224
+    },
+    "verified_status": {
+      "1": 2350,
+      "missing": 655
+    },
+    "with_updated_paragraph": 3005,
+    "with_updated_question": 3005
+  },
+  "textbooks": {
+    "total": 2205,
+    "fields": [
+      "id",
+      "sub",
+      "len",
+      "text",
+      "mode"
+    ],
+    "subjects": {
+      "Biology": 671,
+      "Chemistry": 291,
+      "Geology": 471,
+      "History": 606,
+      "Physics": 166
+    },
+    "modes": {
+      "0": 706,
+      "1": 746,
+      "2": 753
+    }
+  },
+  "mapping": {
+    "questions_mapped_to_textbook": 3005,
+    "unmapped_paragraph_ids_count": 0,
+    "unmapped_paragraph_ids_sample": []
+  }
+}
