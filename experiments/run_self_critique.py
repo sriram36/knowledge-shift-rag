@@ -25,7 +25,10 @@ from experiments.helpers import (
     prepare_question,
     is_correct,
     save_results_jsonl,
-    create_experiment_metadata,def process_question(i, q, retriever, generator, critic, top_k):
+    create_experiment_metadata,
+)
+
+def process_question(i, q, retriever, generator, critic, top_k):
     q_start = time.time()
     prepared = prepare_question(q)
 
@@ -178,4 +181,4 @@ if __name__ == "__main__":
     parser.add_argument("--max_workers", type=int, default=5, help="Number of parallel threads")
     args = parser.parse_args()
 
-    run_self_critique(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file, max_workers=args.max_workers)mple_file)
+    run_self_critique(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file, max_workers=args.max_workers)
