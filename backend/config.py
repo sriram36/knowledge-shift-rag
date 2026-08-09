@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 # Try to load .env file if python-dotenv is available
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 except ImportError:
     pass
 
