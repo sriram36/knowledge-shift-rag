@@ -16,7 +16,7 @@ build/
 indexes/
 
 # Results (optional - you may want to track these)
-results/
+# results/
 
 # IDE
 .vscode/
