@@ -167,7 +167,7 @@ def run_knowledge_repair(num_questions: int | None = None, top_k: int = 5, sampl
             else:
                 repair_marker = " [REPAIR]"
 
-        print(f"  [{i+1}/{len(questions)}] {'✓' if correct else '✗'} "
+        print(f"  [{i+1}/{len(questions)}] {'PASS' if correct else 'FAIL'} "
               f"pred={final_answer} correct={prepared['correct_letter']} "
               f"critique={critique_status}{repair_marker} "
               f"acc={correct_count/(i+1):.3f} time={q_time:.1f}s")

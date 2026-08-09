@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from openai import OpenAI
+from openai import OpenAI, AzureOpenAI
 
 from backend.config import config
 from backend.services.retriever import Retriever
@@ -84,10 +84,18 @@ class KnowledgeRepair:
         self.temperature = cfg.temperature
         self.max_tokens = cfg.max_tokens
 
-        self.client = OpenAI(
-            api_key=cfg.api_key,
-            base_url=cfg.base_url,
-        )
+        if getattr(cfg, "is_azure", False):
+            self.client = AzureOpenAI(
+                api_key=cfg.api_key,
+                api_version=cfg.azure_api_version,
+                azure_endpoint=cfg.azure_endpoint,
+            )
+            self.model = cfg.azure_deployment or self.model
+        else:
+            self.client = OpenAI(
+                api_key=cfg.api_key,
+                base_url=cfg.base_url,
+            )
 
     def reformulate_query(
         self,

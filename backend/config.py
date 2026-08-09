@@ -56,6 +56,12 @@ class LLMConfig:
     model: str = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
     temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.0"))
     max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "512"))
+    
+    # Azure OpenAI specific
+    is_azure: bool = os.getenv("AZURE_OPENAI", "false").lower() == "true"
+    azure_endpoint: str = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    azure_api_version: str = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+    azure_deployment: str = os.getenv("AZURE_OPENAI_DEPLOYMENT", "")
 
 
 @dataclass

@@ -102,7 +102,7 @@ def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_fil
 
         # Progress
         acc = correct_count / (i + 1)
-        print(f"  [{i+1}/{len(questions)}] {'✓' if correct else '✗'} "
+        print(f"  [{i+1}/{len(questions)}] {'PASS' if correct else 'FAIL'} "
               f"predicted={predicted} correct={prepared['correct_letter']} "
               f"acc={acc:.3f} time={q_time:.1f}s")
 
