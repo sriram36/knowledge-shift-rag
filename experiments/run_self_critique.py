@@ -40,7 +40,7 @@ def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_f
         with open(sample_file, 'r', encoding='utf-8') as f:
             indices = json.load(f)
         questions = [questions[i] for i in indices]
-    elif num_questions:
+    if num_questions:
         questions = questions[:num_questions]
     print(f"Evaluating {len(questions)} questions")
 
