@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from backend.services.data_loader import KnowShiftDataLoader
 from backend.services.chunker import TextChunker, Chunk
 from experiments.helpers import prepare_question, is_correct
+from build_index import apply_knowledge_shifts
 
 
 # ======================================================================
@@ -96,6 +97,52 @@ class TestDataLoader:
         subjects = loader.get_subjects()
         expected = {"Biology", "Chemistry", "Geology", "History", "Physics"}
         assert set(subjects.keys()) == expected
+
+
+# ======================================================================
+# Knowledge Shift Tests
+# ======================================================================
+
+class TestKnowledgeShifts:
+    """Tests for apply_knowledge_shifts."""
+
+    def test_apply_knowledge_shifts_valid(self):
+        class MockLoader:
+            def __init__(self):
+                self.questions = [
+                    {"paragraph_info": {"id": 1}, "updated_paragraph": "New fact 1"},
+                    {"paragraph_info": {"id": 2}, "updated_paragraph": "New fact 2"},
+                    {"paragraph_info": {"id": 1}, "updated_paragraph": "New fact 1"}, # duplicate safe
+                    {"paragraph_info": {"id": 4}} # no updated_paragraph
+                ]
+                self.textbooks = [
+                    {"id": 1, "text": "Old fact 1"},
+                    {"id": 2, "text": "Old fact 2"},
+                    {"id": 3, "text": "Old fact 3"}
+                ]
+        
+        loader = MockLoader()
+        result = apply_knowledge_shifts(loader)
+        
+        assert result.textbooks[0]["text"] == "New fact 1"
+        assert result.textbooks[1]["text"] == "New fact 2"
+        assert result.textbooks[2]["text"] == "Old fact 3" # unchanged
+
+    def test_apply_knowledge_shifts_conflict(self):
+        class MockLoader:
+            def __init__(self):
+                self.questions = [
+                    {"paragraph_info": {"id": 1}, "updated_paragraph": "New fact A"},
+                    {"paragraph_info": {"id": 1}, "updated_paragraph": "New fact B"} # conflict
+                ]
+                self.textbooks = [
+                    {"id": 1, "text": "Old fact"}
+                ]
+                
+        loader = MockLoader()
+        with pytest.raises(ValueError, match="Conflict"):
+            apply_knowledge_shifts(loader)
+
 
 
 # ======================================================================

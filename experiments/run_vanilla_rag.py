@@ -27,7 +27,7 @@ from experiments.helpers import (
 )
 
 
-def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5):
+def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5, sample_file: str | None = None):
     print("=" * 60)
     print("System A — Vanilla RAG")
     print("=" * 60)
@@ -35,7 +35,11 @@ def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5):
     # Load dataset
     loader = KnowShiftDataLoader().load()
     questions = loader.questions
-    if num_questions:
+    if sample_file:
+        with open(sample_file, 'r', encoding='utf-8') as f:
+            indices = json.load(f)
+        questions = [questions[i] for i in indices]
+    elif num_questions:
         questions = questions[:num_questions]
     print(f"Evaluating {len(questions)} questions")
 
@@ -131,6 +135,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Vanilla RAG evaluation")
     parser.add_argument("--num_questions", type=int, default=None, help="Number of questions to evaluate")
     parser.add_argument("--top_k", type=int, default=5, help="Number of chunks to retrieve")
+    parser.add_argument("--sample_file", type=str, default=None, help="Path to JSON file with question indices")
     args = parser.parse_args()
 
-    run_vanilla_rag(num_questions=args.num_questions, top_k=args.top_k)
+    run_vanilla_rag(num_questions=args.num_questions, top_k=args.top_k, sample_file=args.sample_file)
