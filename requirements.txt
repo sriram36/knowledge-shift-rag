@@ -1,0 +1,19 @@
+# Core
+numpy
+tqdm
+python-dotenv
+
+# Embeddings & Vector Store
+sentence-transformers
+faiss-cpu
+torch
+
+# LLM
+openai
+
+# API
+fastapi
+uvicorn[standard]
+
+# Testing
+pytest
