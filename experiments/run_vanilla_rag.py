@@ -1,0 +1,136 @@
+"""
+Experiment: Vanilla RAG (System A)
+
+Question → embed → retrieve top-k → generate answer
+
+Usage:
+    python -m experiments.run_vanilla_rag [--num_questions N] [--top_k K]
+"""
+
+import argparse
+import json
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from backend.config import config, RESULTS_DIR
+from backend.services.data_loader import KnowShiftDataLoader
+from backend.services.retriever import Retriever
+from backend.services.generator import Generator
+from experiments.helpers import (
+    prepare_question,
+    is_correct,
+    save_results_jsonl,
+    create_experiment_metadata,
+)
+
+
+def run_vanilla_rag(num_questions: int | None = None, top_k: int = 5):
+    print("=" * 60)
+    print("System A — Vanilla RAG")
+    print("=" * 60)
+
+    # Load dataset
+    loader = KnowShiftDataLoader().load()
+    questions = loader.questions
+    if num_questions:
+        questions = questions[:num_questions]
+    print(f"Evaluating {len(questions)} questions")
+
+    # Init retriever
+    retriever = Retriever()
+    retriever.load_index()
+
+    # Init generator
+    generator = Generator()
+
+    results = []
+    correct_count = 0
+    start_time = time.time()
+
+    for i, q in enumerate(questions):
+        q_start = time.time()
+        prepared = prepare_question(q)
+
+        # Retrieve
+        retrieved = retriever.retrieve(prepared["question_text"], top_k=top_k)
+        context = "\n\n".join(
+            f"[Source {j} | {r.chunk_id} | {r.subject}]\n{r.text}"
+            for j, r in enumerate(retrieved, 1)
+        )
+
+        # Generate
+        gen_result = generator.generate(
+            question=prepared["question_text"],
+            choices=prepared["choices"],
+            context=context,
+        )
+
+        predicted = gen_result.get("answer", "E")
+        correct = is_correct(predicted, prepared["correct_letter"])
+        if correct:
+            correct_count += 1
+
+        q_time = time.time() - q_start
+
+        result = {
+            "question_index": i,
+            "question_text": prepared["question_text"],
+            "question_type": prepared["question_type"],
+            "subject": prepared["subject"],
+            "paragraph_id": prepared["paragraph_id"],
+            "choices": prepared["choices"],
+            "correct_letter": prepared["correct_letter"],
+            "correct_text": prepared["correct_text"],
+            "predicted_letter": predicted,
+            "predicted_text": gen_result.get("answer_text", ""),
+            "is_correct": correct,
+            "reasoning": gen_result.get("reasoning", ""),
+            "confidence": gen_result.get("confidence", ""),
+            "source_ids": gen_result.get("source_ids", []),
+            "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
+            "latency_seconds": round(q_time, 3),
+            "error": gen_result.get("error", False),
+        }
+        results.append(result)
+
+        # Progress
+        acc = correct_count / (i + 1)
+        print(f"  [{i+1}/{len(questions)}] {'✓' if correct else '✗'} "
+              f"predicted={predicted} correct={prepared['correct_letter']} "
+              f"acc={acc:.3f} time={q_time:.1f}s")
+
+    total_time = time.time() - start_time
+
+    # Save results
+    save_results_jsonl(results, RESULTS_DIR / "vanilla_rag.jsonl")
+
+    # Save metadata
+    metadata = create_experiment_metadata(
+        system_name="vanilla_rag",
+        model=config.llm.model,
+        embedding_model=config.embedding.model_name,
+        top_k=top_k,
+        num_questions=len(questions),
+        total_correct=correct_count,
+        total_time=total_time,
+    )
+    print(f"\n{'=' * 60}")
+    print(f"Vanilla RAG Results:")
+    print(f"  Accuracy: {metadata['accuracy']:.4f} ({correct_count}/{len(questions)})")
+    print(f"  Total time: {total_time:.1f}s")
+    print(f"  Avg per question: {metadata['avg_time_per_question']:.3f}s")
+    print(f"{'=' * 60}")
+
+    return results, metadata
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run Vanilla RAG evaluation")
+    parser.add_argument("--num_questions", type=int, default=None, help="Number of questions to evaluate")
+    parser.add_argument("--top_k", type=int, default=5, help="Number of chunks to retrieve")
+    args = parser.parse_args()
+
+    run_vanilla_rag(num_questions=args.num_questions, top_k=args.top_k)
