@@ -91,6 +91,8 @@ def process_question(i, q, retriever, generator, critic, top_k):
         "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
         "latency_seconds": round(q_time, 3),
         "error": gen_result.get("error", False) or critique_result.get("error", False),
+        "raw_generation": gen_result.get("raw", ""),
+        "raw_critique": critique_result.get("raw", ""),
     }
     return result, q_time
 

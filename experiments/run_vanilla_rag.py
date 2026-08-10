@@ -68,6 +68,7 @@ def process_question(i, q, retriever, generator, top_k):
         "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
         "latency_seconds": round(q_time, 3),
         "error": gen_result.get("error", False),
+        "raw": gen_result.get("raw", ""),
     }
     return result, q_time
 
