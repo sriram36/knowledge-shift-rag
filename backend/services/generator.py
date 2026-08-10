@@ -59,6 +59,7 @@ class Generator:
                 api_key=cfg.api_key,
                 api_version=cfg.azure_api_version,
                 azure_endpoint=cfg.azure_endpoint,
+                max_retries=5,
             )
             self.model = cfg.azure_deployment or self.model
         else:

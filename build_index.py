@@ -17,7 +17,8 @@ from backend.services.embeddings import EmbeddingService
 
 def apply_knowledge_shifts(loader):
     """
-    Override textbook paragraphs with their shifted versions from question.json.
+    Append shifted versions of textbook paragraphs from question.json as NEW entries,
+    and prepend markers so the LLM can distinguish them.
     Verifies that duplicate questions for the same paragraph do not have conflicting updates.
     """
     shift_map = {}
@@ -36,17 +37,32 @@ def apply_knowledge_shifts(loader):
     total_entries = len(loader.textbooks)
     paragraphs_with_updates = len(shift_map)
     
+    new_entries = []
+    
     for entry in loader.textbooks:
         if entry["id"] in shift_map:
-            entry["text"] = shift_map[entry["id"]]
+            # 1. Mark the original text as stale
+            entry["text"] = f"[ORIGINAL TEXT]: {entry['text']}"
+            
+            # 2. Create the new updated entry
+            new_entry = {
+                "id": f"{entry['id']}_updated",
+                "subject": entry.get("subject", ""),
+                "text": f"[NEWEST UPDATE]: {shift_map[entry['id']]}"
+            }
+            new_entries.append(new_entry)
             shifted_count += 1
+            
+    # Add all new updated entries to the corpus
+    loader.textbooks.extend(new_entries)
             
     without_updates = total_entries - shifted_count
             
-    print(f"  Total textbook entries: {total_entries}")
+    print(f"  Total original textbook entries: {total_entries}")
     print(f"  Number of paragraphs with updates: {paragraphs_with_updates}")
-    print(f"  Number actually replaced: {shifted_count}")
-    print(f"  Number without updates: {without_updates}")
+    print(f"  Number of NEW updated entries appended: {shifted_count}")
+    print(f"  Number of original entries without updates: {without_updates}")
+    print(f"  Final total textbook entries: {len(loader.textbooks)}")
     
     return loader
 

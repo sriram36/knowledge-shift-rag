@@ -89,6 +89,7 @@ class KnowledgeRepair:
                 api_key=cfg.api_key,
                 api_version=cfg.azure_api_version,
                 azure_endpoint=cfg.azure_endpoint,
+                max_retries=5,
             )
             self.model = cfg.azure_deployment or self.model
         else:
@@ -107,7 +108,7 @@ class KnowledgeRepair:
             response = self.client.chat.completions.create(
                 model=self.model,
                 temperature=self.temperature,
-                max_tokens=256,
+                max_completion_tokens=256,
                 messages=[
                     {"role": "system", "content": REFORMULATE_SYSTEM_PROMPT},
                     {"role": "user", "content": (
