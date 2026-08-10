@@ -70,6 +70,8 @@ def prepare_question(q: dict[str, Any]) -> dict[str, Any]:
 
 def is_correct(predicted_letter: str, correct_letter: str) -> bool:
     """Check if the predicted answer matches the correct one."""
+    if not predicted_letter or not correct_letter:
+        return False
     return predicted_letter.upper().strip() == correct_letter.upper().strip()
 
 
