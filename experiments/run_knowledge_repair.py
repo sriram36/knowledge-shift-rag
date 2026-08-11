@@ -82,7 +82,10 @@ def process_question(i, q, retriever, generator, critic, repair, top_k):
             critique_reason=critique_result.get("reason", ""),
         )
 
-        final_answer = repair_result.get("answer", initial_answer)
+        if repair_result.get("repair_successful") and repair_result.get("answer") in ("A", "B", "C", "D"):
+            final_answer = repair_result["answer"]
+        else:
+            final_answer = initial_answer
         final_answer_text = repair_result.get("answer_text", initial_answer_text)
 
         if repair_result.get("repair_successful", False):
