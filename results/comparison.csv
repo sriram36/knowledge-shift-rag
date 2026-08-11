@@ -1,0 +1,6 @@
+metric,vanilla_rag,self_critique_rag,knowledge_repair_rag
+accuracy,0.6400,0.7000,0.5900
+accuracy_multihop_direct,0.7143,0.7143,0.5714
+accuracy_multihop_implicit,0.4444,0.5926,0.5556
+accuracy_simple_direct,0.7105,0.7632,0.6316
+avg_latency_s,9.648,15.526,44.885

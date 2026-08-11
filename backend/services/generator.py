@@ -123,6 +123,23 @@ class Generator:
                 "error": True,
             }
 
+    @staticmethod
+    def _normalize_response(result: dict[str, Any]) -> dict[str, Any]:
+        """Ensure the response has valid types and bounded choices."""
+        ans = result.get("answer")
+        if not isinstance(ans, str) or ans.upper().strip() not in ("A", "B", "C", "D"):
+            # Set to sentinel error value if missing, None, or invalid
+            result["answer"] = "E"
+            result["error"] = True
+        else:
+            result["answer"] = ans.upper().strip()
+        
+        result.setdefault("answer_text", "")
+        result.setdefault("reasoning", "")
+        result.setdefault("source_ids", [])
+        result.setdefault("confidence", "low")
+        return result
+
     def _parse_response(self, raw_text: str) -> dict[str, Any]:
         """Try to parse JSON from the LLM response."""
         # Try direct JSON parse
@@ -130,7 +147,7 @@ class Generator:
             result = json.loads(raw_text)
             result["raw"] = raw_text
             result["error"] = False
-            return result
+            return self._normalize_response(result)
         except json.JSONDecodeError:
             pass
 
@@ -141,7 +158,7 @@ class Generator:
                 result = json.loads(json_str)
                 result["raw"] = raw_text
                 result["error"] = False
-                return result
+                return self._normalize_response(result)
             except (json.JSONDecodeError, IndexError):
                 pass
 
@@ -151,7 +168,7 @@ class Generator:
                 result = json.loads(json_str)
                 result["raw"] = raw_text
                 result["error"] = False
-                return result
+                return self._normalize_response(result)
             except (json.JSONDecodeError, IndexError):
                 pass
 
@@ -159,6 +176,7 @@ class Generator:
         import re
         match = re.search(r'"answer"\s*:\s*"([A-D])"', raw_text)
         letter = match.group(1) if match else "E"
+        error_flag = letter == "E"
 
         return {
             "answer": letter,
@@ -167,6 +185,6 @@ class Generator:
             "source_ids": [],
             "confidence": "low",
             "raw": raw_text,
-            "error": False,
+            "error": error_flag,
             "parse_fallback": True,
         }

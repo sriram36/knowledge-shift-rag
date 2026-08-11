@@ -1,0 +1,114 @@
+{
+  "systems": {
+    "vanilla_rag": {
+      "system": "vanilla_rag",
+      "total": 100,
+      "correct": 64,
+      "accuracy": 0.64,
+      "errors": 12,
+      "avg_latency": 9.648100000000001,
+      "by_type": {
+        "multihop_direct": {
+          "total": 35,
+          "correct": 25,
+          "accuracy": 0.7142857142857143
+        },
+        "multihop_implicit": {
+          "total": 27,
+          "correct": 12,
+          "accuracy": 0.4444444444444444
+        },
+        "simple_direct": {
+          "total": 38,
+          "correct": 27,
+          "accuracy": 0.7105263157894737
+        }
+      },
+      "by_subject": {
+        "Biology": {
+          "total": 100,
+          "correct": 64,
+          "accuracy": 0.64
+        }
+      }
+    },
+    "self_critique_rag": {
+      "system": "self_critique_rag",
+      "total": 100,
+      "correct": 70,
+      "accuracy": 0.7,
+      "errors": 11,
+      "avg_latency": 15.52623,
+      "by_type": {
+        "multihop_direct": {
+          "total": 35,
+          "correct": 25,
+          "accuracy": 0.7142857142857143
+        },
+        "multihop_implicit": {
+          "total": 27,
+          "correct": 16,
+          "accuracy": 0.5925925925925926
+        },
+        "simple_direct": {
+          "total": 38,
+          "correct": 29,
+          "accuracy": 0.7631578947368421
+        }
+      },
+      "by_subject": {
+        "Biology": {
+          "total": 100,
+          "correct": 70,
+          "accuracy": 0.7
+        }
+      },
+      "critique_distribution": {
+        "UNCERTAIN": 20,
+        "SUPPORTED": 65,
+        "UNSUPPORTED": 15
+      }
+    },
+    "knowledge_repair_rag": {
+      "system": "knowledge_repair_rag",
+      "total": 100,
+      "correct": 59,
+      "accuracy": 0.59,
+      "errors": 9,
+      "avg_latency": 44.88469,
+      "by_type": {
+        "multihop_direct": {
+          "total": 35,
+          "correct": 20,
+          "accuracy": 0.5714285714285714
+        },
+        "multihop_implicit": {
+          "total": 27,
+          "correct": 15,
+          "accuracy": 0.5555555555555556
+        },
+        "simple_direct": {
+          "total": 38,
+          "correct": 24,
+          "accuracy": 0.631578947368421
+        }
+      },
+      "by_subject": {
+        "Biology": {
+          "total": 100,
+          "correct": 59,
+          "accuracy": 0.59
+        }
+      },
+      "critique_distribution": {
+        "UNCERTAIN": 17,
+        "SUPPORTED": 68,
+        "UNSUPPORTED": 15
+      },
+      "repairs_triggered": 32,
+      "repairs_fixed": 1,
+      "repairs_broke": 9
+    }
+  },
+  "comparison_note": "All systems evaluated on the same questions from KnowShiftQA"
+}

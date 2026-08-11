@@ -208,6 +208,24 @@ class KnowledgeRepair:
 
         return result
 
+    @staticmethod
+    def _normalize_response(result: dict[str, Any]) -> dict[str, Any]:
+        """Ensure the repair response has valid types and bounded choices."""
+        ans = result.get("answer")
+        if not isinstance(ans, str) or ans.upper().strip() not in ("A", "B", "C", "D"):
+            # Set to sentinel error value if missing, None, or invalid
+            result["answer"] = "E"
+            result["error"] = True
+            result["repair_successful"] = False
+        else:
+            result["answer"] = ans.upper().strip()
+            
+        result.setdefault("answer_text", "")
+        result.setdefault("reasoning", "")
+        result.setdefault("repair_successful", False)
+        result.setdefault("source_ids", [])
+        return result
+
     def _parse_response(self, raw_text: str) -> dict[str, Any]:
         """Parse the repair response."""
         # Try direct JSON
@@ -216,7 +234,7 @@ class KnowledgeRepair:
                 result = json.loads(attempt_text)
                 result["raw"] = raw_text
                 result["error"] = False
-                return result
+                return self._normalize_response(result)
             except json.JSONDecodeError:
                 pass
 
@@ -227,7 +245,7 @@ class KnowledgeRepair:
                 result = json.loads(json_str)
                 result["raw"] = raw_text
                 result["error"] = False
-                return result
+                return self._normalize_response(result)
             except (json.JSONDecodeError, IndexError):
                 pass
 
@@ -235,6 +253,7 @@ class KnowledgeRepair:
         import re
         match = re.search(r'"answer"\s*:\s*"([A-D])"', raw_text)
         letter = match.group(1) if match else "E"
+        error_flag = letter == "E"
 
         return {
             "answer": letter,
@@ -243,6 +262,6 @@ class KnowledgeRepair:
             "repair_successful": False,
             "source_ids": [],
             "raw": raw_text,
-            "error": False,
+            "error": error_flag,
             "parse_fallback": True,
         }
