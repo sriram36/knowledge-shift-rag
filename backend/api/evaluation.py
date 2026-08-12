@@ -51,3 +51,20 @@ async def run_evaluation(request: EvalRequest, background_tasks: BackgroundTasks
                 f"num_questions={request.num_questions}, top_k={request.top_k}. "
                 f"Results will be saved to results/ directory.",
     )
+
+
+@router.get("/evaluation/results")
+async def get_results():
+    """Read and return the latest experiment summary."""
+    import json
+    from pathlib import Path
+    
+    results_path = Path(__file__).resolve().parent.parent.parent / "results" / "experiment_summary.json"
+    if not results_path.exists():
+        return {"error": "No results found. Run experiments first."}
+        
+    try:
+        with open(results_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        return {"error": f"Failed to load results: {e}"}

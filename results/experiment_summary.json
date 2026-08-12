@@ -3,111 +3,201 @@
     "vanilla_rag": {
       "system": "vanilla_rag",
       "total": 100,
-      "correct": 64,
-      "accuracy": 0.64,
-      "errors": 12,
-      "avg_latency": 9.648100000000001,
+      "correct": 76,
+      "accuracy": 0.76,
+      "errors": 17,
+      "avg_latency": 9.35946,
       "by_type": {
+        "distant_implicit": {
+          "total": 20,
+          "correct": 7,
+          "accuracy": 0.35
+        },
         "multihop_direct": {
-          "total": 35,
-          "correct": 25,
-          "accuracy": 0.7142857142857143
+          "total": 20,
+          "correct": 18,
+          "accuracy": 0.9
+        },
+        "multihop_distant": {
+          "total": 20,
+          "correct": 18,
+          "accuracy": 0.9
         },
         "multihop_implicit": {
-          "total": 27,
-          "correct": 12,
-          "accuracy": 0.4444444444444444
+          "total": 20,
+          "correct": 14,
+          "accuracy": 0.7
         },
         "simple_direct": {
-          "total": 38,
-          "correct": 27,
-          "accuracy": 0.7105263157894737
+          "total": 20,
+          "correct": 19,
+          "accuracy": 0.95
         }
       },
       "by_subject": {
         "Biology": {
-          "total": 100,
-          "correct": 64,
-          "accuracy": 0.64
+          "total": 20,
+          "correct": 13,
+          "accuracy": 0.65
+        },
+        "Chemistry": {
+          "total": 20,
+          "correct": 17,
+          "accuracy": 0.85
+        },
+        "Geology": {
+          "total": 20,
+          "correct": 17,
+          "accuracy": 0.85
+        },
+        "History": {
+          "total": 20,
+          "correct": 15,
+          "accuracy": 0.75
+        },
+        "Physics": {
+          "total": 20,
+          "correct": 14,
+          "accuracy": 0.7
         }
       }
     },
     "self_critique_rag": {
       "system": "self_critique_rag",
       "total": 100,
-      "correct": 70,
-      "accuracy": 0.7,
-      "errors": 11,
-      "avg_latency": 15.52623,
+      "correct": 72,
+      "accuracy": 0.72,
+      "errors": 17,
+      "avg_latency": 15.150889999999999,
       "by_type": {
+        "distant_implicit": {
+          "total": 20,
+          "correct": 7,
+          "accuracy": 0.35
+        },
         "multihop_direct": {
-          "total": 35,
-          "correct": 25,
-          "accuracy": 0.7142857142857143
+          "total": 20,
+          "correct": 18,
+          "accuracy": 0.9
+        },
+        "multihop_distant": {
+          "total": 20,
+          "correct": 17,
+          "accuracy": 0.85
         },
         "multihop_implicit": {
-          "total": 27,
-          "correct": 16,
-          "accuracy": 0.5925925925925926
+          "total": 20,
+          "correct": 11,
+          "accuracy": 0.55
         },
         "simple_direct": {
-          "total": 38,
-          "correct": 29,
-          "accuracy": 0.7631578947368421
+          "total": 20,
+          "correct": 19,
+          "accuracy": 0.95
         }
       },
       "by_subject": {
         "Biology": {
-          "total": 100,
-          "correct": 70,
+          "total": 20,
+          "correct": 14,
           "accuracy": 0.7
+        },
+        "Chemistry": {
+          "total": 20,
+          "correct": 16,
+          "accuracy": 0.8
+        },
+        "Geology": {
+          "total": 20,
+          "correct": 14,
+          "accuracy": 0.7
+        },
+        "History": {
+          "total": 20,
+          "correct": 15,
+          "accuracy": 0.75
+        },
+        "Physics": {
+          "total": 20,
+          "correct": 13,
+          "accuracy": 0.65
         }
       },
       "critique_distribution": {
-        "UNCERTAIN": 20,
-        "SUPPORTED": 65,
-        "UNSUPPORTED": 15
+        "SUPPORTED": 73,
+        "UNSUPPORTED": 15,
+        "UNCERTAIN": 12
       }
     },
     "knowledge_repair_rag": {
       "system": "knowledge_repair_rag",
       "total": 100,
-      "correct": 59,
-      "accuracy": 0.59,
-      "errors": 9,
-      "avg_latency": 44.88469,
+      "correct": 72,
+      "accuracy": 0.72,
+      "errors": 13,
+      "avg_latency": 18.99385,
       "by_type": {
+        "distant_implicit": {
+          "total": 20,
+          "correct": 7,
+          "accuracy": 0.35
+        },
         "multihop_direct": {
-          "total": 35,
-          "correct": 20,
-          "accuracy": 0.5714285714285714
+          "total": 20,
+          "correct": 18,
+          "accuracy": 0.9
+        },
+        "multihop_distant": {
+          "total": 20,
+          "correct": 16,
+          "accuracy": 0.8
         },
         "multihop_implicit": {
-          "total": 27,
-          "correct": 15,
-          "accuracy": 0.5555555555555556
+          "total": 20,
+          "correct": 13,
+          "accuracy": 0.65
         },
         "simple_direct": {
-          "total": 38,
-          "correct": 24,
-          "accuracy": 0.631578947368421
+          "total": 20,
+          "correct": 18,
+          "accuracy": 0.9
         }
       },
       "by_subject": {
         "Biology": {
-          "total": 100,
-          "correct": 59,
-          "accuracy": 0.59
+          "total": 20,
+          "correct": 14,
+          "accuracy": 0.7
+        },
+        "Chemistry": {
+          "total": 20,
+          "correct": 15,
+          "accuracy": 0.75
+        },
+        "Geology": {
+          "total": 20,
+          "correct": 13,
+          "accuracy": 0.65
+        },
+        "History": {
+          "total": 20,
+          "correct": 16,
+          "accuracy": 0.8
+        },
+        "Physics": {
+          "total": 20,
+          "correct": 14,
+          "accuracy": 0.7
         }
       },
       "critique_distribution": {
-        "UNCERTAIN": 17,
-        "SUPPORTED": 68,
-        "UNSUPPORTED": 15
+        "SUPPORTED": 75,
+        "UNSUPPORTED": 16,
+        "UNCERTAIN": 9
       },
-      "repairs_triggered": 32,
+      "repairs_triggered": 25,
       "repairs_fixed": 1,
-      "repairs_broke": 9
+      "repairs_broke": 6
     }
   },
   "comparison_note": "All systems evaluated on the same questions from KnowShiftQA"

@@ -3,757 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge-Shift RAG</title>
+    <title>Knowledge-Shift RAG | Research Demo</title>
     <meta name="description" content="Self-reflective knowledge-repair RAG system for educational question answering">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            /* Color Palette */
-            --bg-base: #09090e;
-            --bg-surface: rgba(23, 25, 38, 0.6);
-            --bg-surface-hover: rgba(33, 36, 54, 0.8);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-highlight: rgba(255, 255, 255, 0.15);
-            
-            --text-primary: #f8f9fa;
-            --text-secondary: #a0a5b8;
-            
-            --accent-primary: #7c3aed;
-            --accent-secondary: #ec4899;
-            --accent-gradient: linear-gradient(135deg, #7c3aed, #ec4899);
-            --accent-glow: rgba(124, 58, 237, 0.3);
-            
-            --status-green: #10b981;
-            --status-green-bg: rgba(16, 185, 129, 0.15);
-            --status-yellow: #f59e0b;
-            --status-yellow-bg: rgba(245, 158, 11, 0.15);
-            --status-red: #ef4444;
-            --status-red-bg: rgba(239, 68, 68, 0.15);
-            
-            --radius-lg: 20px;
-            --radius-md: 12px;
-            --radius-sm: 8px;
-            
-            --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-base);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        /* Ambient Background Glows */
-        .ambient-bg {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1;
-            overflow: hidden;
-            pointer-events: none;
-            background: #09090e;
-        }
-        
-        .ambient-blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.4;
-            animation: float 20s infinite ease-in-out alternate;
-        }
-        
-        .blob-1 {
-            top: -10%; left: -10%;
-            width: 50vw; height: 50vw;
-            background: rgba(124, 58, 237, 0.3);
-        }
-        
-        .blob-2 {
-            bottom: -20%; right: -10%;
-            width: 60vw; height: 60vw;
-            background: rgba(236, 72, 153, 0.2);
-            animation-delay: -10s;
-        }
-
-        @keyframes float {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(5%, 10%) scale(1.1); }
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 3rem 1.5rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 3.5rem;
-            animation: fadeDown 0.8s ease-out forwards;
-        }
-
-        @keyframes fadeDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .header h1 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 3rem;
-            font-weight: 800;
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
-        }
-
-        .header p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            font-weight: 400;
-        }
-
-        /* Glassmorphic Card */
-        .glass-card {
-            background: var(--bg-surface);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: var(--shadow-glass);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s;
-        }
-
-        .glass-card:hover {
-            border-color: var(--border-highlight);
-            transform: translateY(-2px);
-        }
-
-        .card-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-secondary);
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card-title::before {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-gradient);
-        }
-
-        /* Mode Selector */
-        .mode-selector {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-            background: rgba(0,0,0,0.2);
-            padding: 0.3rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-        }
-
-        .mode-btn {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: none;
-            border-radius: var(--radius-sm);
-            background: transparent;
-            color: var(--text-secondary);
-            font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .mode-btn:hover { color: var(--text-primary); }
-
-        .mode-btn.active {
-            color: #fff;
-            background: var(--accent-gradient);
-            box-shadow: 0 4px 15px var(--accent-glow);
-        }
-
-        /* Input Area */
-        .input-group {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-
-        .input-wrapper {
-            flex: 1;
-            position: relative;
-        }
-
-        textarea {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 1.2rem;
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            resize: vertical;
-            min-height: 60px;
-            transition: all 0.3s;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
-        }
-        
-        textarea::placeholder {
-            color: rgba(255,255,255,0.3);
-        }
-
-        .send-btn {
-            padding: 1.15rem 2rem;
-            background: var(--accent-primary);
-            background: var(--accent-gradient);
-            border: none;
-            border-radius: var(--radius-md);
-            color: white;
-            font-family: 'Outfit', sans-serif;
-            font-size: 1rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 15px var(--accent-glow);
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .send-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px var(--accent-glow);
-            filter: brightness(1.1);
-        }
-        
-        .send-btn:active { transform: translateY(0); }
-        .send-btn:disabled { 
-            opacity: 0.6; 
-            cursor: not-allowed; 
-            transform: none; 
-            filter: grayscale(1); 
-        }
-
-        /* Loading State */
-        .loading {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            padding: 3rem 0;
-        }
-
-        .loading.show { display: flex; }
-
-        .spinner-container {
-            position: relative;
-            width: 60px;
-            height: 60px;
-            margin-bottom: 1.5rem;
-        }
-
-        .spinner-ring {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border: 3px solid transparent;
-            border-top-color: var(--accent-primary);
-            border-bottom-color: var(--accent-secondary);
-            border-radius: 50%;
-            animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-        }
-        
-        .spinner-ring::before {
-            content: '';
-            position: absolute;
-            top: 5px; left: 5px; right: 5px; bottom: 5px;
-            border: 3px solid transparent;
-            border-left-color: var(--accent-secondary);
-            border-right-color: var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 2s linear infinite reverse;
-        }
-
-        .loading p {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 500;
-            color: var(--text-secondary);
-            letter-spacing: 0.05em;
-            animation: pulseText 1.5s infinite alternate;
-        }
-
-        @keyframes pulseText {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Results Visualization */
-        .result { 
-            display: none; 
-            animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        .result.show { display: block; }
-        
-        @keyframes slideUpFade {
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Staggered animations for multiple result cards */
-        #result-answer { animation-delay: 0.1s; }
-        #result-critique { animation-delay: 0.2s; }
-        #result-repair { animation-delay: 0.3s; }
-        #result-sources { animation-delay: 0.4s; }
-
-        .answer-text {
-            font-size: 1.15rem;
-            line-height: 1.8;
-            color: var(--text-primary);
-            padding: 1.5rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: var(--radius-md);
-            border-left: 4px solid var(--accent-primary);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .answer-text::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(90deg, rgba(124,58,237,0.05) 0%, transparent 100%);
-            pointer-events: none;
-        }
-
-        .reasoning-text {
-            display: block;
-            margin-top: 1rem;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            font-style: italic;
-            border-top: 1px dashed var(--border-color);
-            padding-top: 1rem;
-        }
-
-        /* Badges */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.35rem 0.85rem;
-            border-radius: 20px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .badge-supported { background: var(--status-green-bg); color: var(--status-green); border: 1px solid rgba(16, 185, 129, 0.3); }
-        .badge-uncertain { background: var(--status-yellow-bg); color: var(--status-yellow); border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge-unsupported { background: var(--status-red-bg); color: var(--status-red); border: 1px solid rgba(239, 68, 68, 0.3); }
-
-        .critique-container {
-            display: flex;
-            align-items: flex-start;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .critique-reason {
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            background: rgba(0,0,0,0.2);
-            padding: 1rem;
-            border-radius: var(--radius-sm);
-            width: 100%;
-            border: 1px solid var(--border-color);
-        }
-
-        /* Sources List */
-        .sources-grid {
-            display: grid;
-            gap: 1rem;
-        }
-        
-        .source-item {
-            padding: 1.25rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .source-item:hover {
-            border-color: var(--border-highlight);
-            background: rgba(0, 0, 0, 0.4);
-            transform: translateX(5px);
-        }
-
-        .source-item::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 3px; height: 100%;
-            background: var(--text-secondary);
-            opacity: 0.5;
-            transition: all 0.3s;
-        }
-        
-        .source-item:hover::before {
-            background: var(--accent-secondary);
-            opacity: 1;
-        }
-
-        .source-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-        }
-
-        .chunk-id {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            color: var(--accent-secondary);
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        
-        .chunk-id::before {
-            content: '📄';
-            font-size: 1rem;
-        }
-
-        .score-badge {
-            background: rgba(255,255,255,0.05);
-            color: var(--text-secondary);
-            padding: 0.2rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-family: monospace;
-            border: 1px solid var(--border-color);
-        }
-
-        .text-preview {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
-        /* Repair Section */
-        .repair-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .repair-stat {
-            background: rgba(0,0,0,0.2);
-            padding: 1rem;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-        }
-        
-        .repair-stat .label {
-            display: block;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .repair-stat .value {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        /* Error */
-        .error-msg {
-            display: none;
-            padding: 1.25rem;
-            background: var(--status-red-bg);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            border-radius: var(--radius-md);
-            color: #ff8f8f;
-            font-size: 0.95rem;
-            margin-bottom: 1.5rem;
-            backdrop-filter: blur(10px);
-            animation: slideUpFade 0.3s forwards;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .error-msg::before {
-            content: '⚠️';
-            font-size: 1.2rem;
-        }
-
-        .error-msg.show { display: flex; }
-        
-        /* Responsive */
-        @media (max-width: 640px) {
-            .input-group { flex-direction: column; }
-            .send-btn { width: 100%; }
-            .header h1 { font-size: 2.2rem; }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <!-- Ambient Background -->
-    <div class="ambient-bg">
-        <div class="ambient-blob blob-1"></div>
-        <div class="ambient-blob blob-2"></div>
-    </div>
 
-    <div class="container">
-        <div class="header">
-            <h1>Knowledge-Shift RAG</h1>
-            <p>Self-reflective knowledge-repair system for educational QA</p>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h1 class="text-gradient">Knowledge-Shift RAG</h1>
+            <p>ADAPTIVE Q&amp;A PIPELINE — RESEARCH CONSOLE</p>
         </div>
+        <ul class="nav-links">
+            <li><a href="#" class="nav-item active" data-page="ask">Ask Question</a></li>
+            <li><a href="#" class="nav-item" data-page="compare">Compare Methods</a></li>
+            <li><a href="#" class="nav-item" data-page="dashboard">Research Dashboard</a></li>
+            <li><a href="#" class="nav-item" data-page="about">Architecture</a></li>
+        </ul>
+    </nav>
 
-        <!-- Input Card -->
-        <div class="glass-card">
-            <div class="card-title">Pipeline Configuration</div>
-            <div class="mode-selector">
-                <button class="mode-btn active" data-mode="vanilla" id="mode-vanilla">Vanilla RAG</button>
-                <button class="mode-btn" data-mode="self_critique" id="mode-self_critique">Self-Critique</button>
-                <button class="mode-btn" data-mode="knowledge_repair" id="mode-knowledge_repair">Knowledge Repair</button>
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <!-- Page 1: Ask Question -->
+        <section id="ask-page" class="page active">
+            <div class="page-header">
+                <span class="eyebrow">Live query</span>
+                <h2>Ask a question</h2>
+                <p>Run a single prompt through the pipeline and inspect the answer, its critique, and any repair step.</p>
             </div>
             
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <textarea id="question-input" placeholder="Enter your question here to test the retrieval and generation pipeline..." rows="2"></textarea>
-                </div>
-                <button class="send-btn" id="send-btn" onclick="sendQuestion()">
-                    Run Pipeline ✨
-                </button>
-            </div>
-        </div>
-
-        <!-- Error -->
-        <div class="error-msg" id="error-msg" style="display: none;"></div>
-
-        <!-- Loading -->
-        <div class="loading" id="loading">
-            <div class="spinner-container">
-                <div class="spinner-ring"></div>
-            </div>
-            <p>Running Neural Pipeline...</p>
-        </div>
-
-        <!-- Answer -->
-        <div class="result" id="result-answer">
-            <div class="glass-card">
-                <div class="card-title">Final Generation</div>
-                <div class="answer-text" id="answer-text"></div>
-            </div>
-        </div>
-
-        <!-- Critique -->
-        <div class="result" id="result-critique">
-            <div class="glass-card">
-                <div class="card-title">Self-Critique Analysis</div>
-                <div class="critique-container">
-                    <div class="badge" id="critique-badge"></div>
-                    <div class="critique-reason" id="critique-reason"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Repair -->
-        <div class="result" id="result-repair">
-            <div class="glass-card">
-                <div class="card-title">Knowledge Repair Action</div>
-                <div class="repair-grid">
-                    <div class="repair-stat">
-                        <span class="label">Repair Triggered</span>
-                        <span class="value" style="color: var(--status-yellow)">Yes</span>
+            <div class="glass-panel">
+                <form id="ask-form">
+                    <div class="input-group">
+                        <label for="ask-question">Question</label>
+                        <textarea id="ask-question" class="modern-input" placeholder="Enter your prompt here..." required></textarea>
                     </div>
-                    <div class="repair-stat">
-                        <span class="label">Repair Successful</span>
-                        <span class="value" id="repair-success"></span>
+                    
+                    <div class="input-group">
+                        <label for="ask-mode">Execution mode</label>
+                        <select id="ask-mode" class="modern-select">
+                            <option value="knowledge_repair" selected>Knowledge-Repair RAG</option>
+                            <option value="self_critique">Self-Critique RAG</option>
+                            <option value="vanilla">Vanilla RAG</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" id="ask-btn" class="btn-primary">
+                        Run pipeline <span id="ask-loading" class="loader" style="display:none; margin-left:12px;"></span>
+                    </button>
+                </form>
+            </div>
+
+            <div id="ask-results" class="result-section">
+                <!-- Results dynamically injected here -->
+            </div>
+        </section>
+
+        <!-- Page 2: Compare Methods -->
+        <section id="compare-page" class="page">
+            <div class="page-header">
+                <span class="eyebrow">Side-by-side trace</span>
+                <h2>Compare methods</h2>
+                <p>Submit one prompt to all three architectures at once and read the results in parallel.</p>
+            </div>
+
+            <div class="glass-panel">
+                <form id="compare-form">
+                    <div class="input-group">
+                        <label for="compare-question">Question</label>
+                        <textarea id="compare-question" class="modern-input" placeholder="Enter a prompt to compare..." required></textarea>
+                    </div>
+                    <button type="submit" id="compare-btn" class="btn-primary">
+                        Run comparison <span id="compare-loading" class="loader" style="display:none; margin-left:12px;"></span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="compare-grid">
+                <div class="glass-panel compare-card">
+                    <h3>Vanilla RAG</h3>
+                    <div id="compare-vanilla-res">
+                        <p style="color:var(--ink-muted); text-align:center">Not run yet.</p>
                     </div>
                 </div>
-                <div class="critique-reason" style="margin-top: 1rem;">
-                    <span class="label" style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Repair Reasoning</span>
-                    <div style="margin-top: 0.4rem;" id="repair-reasoning-text"></div>
+                <div class="glass-panel compare-card">
+                    <h3 class="text-gradient">Self-Critique RAG</h3>
+                    <div id="compare-self_critique-res">
+                        <p style="color:var(--ink-muted); text-align:center">Not run yet.</p>
+                    </div>
+                </div>
+                <div class="glass-panel compare-card">
+                    <h3 class="text-gradient-secondary">Knowledge-Repair RAG</h3>
+                    <div id="compare-knowledge_repair-res">
+                        <p style="color:var(--ink-muted); text-align:center">Not run yet.</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Sources -->
-        <div class="result" id="result-sources">
-            <div class="glass-card">
-                <div class="card-title">Retrieved Evidence</div>
-                <div class="sources-grid" id="sources-list"></div>
+        <!-- Page 3: Research Dashboard -->
+        <section id="dashboard-page" class="page">
+            <div class="page-header">
+                <span class="eyebrow">Benchmark results · n = 100</span>
+                <h2>Research dashboard</h2>
+                <p>Live metrics evaluated against a 100-question benchmark set.</p>
             </div>
-        </div>
-    </div>
 
-    <script>
-        let selectedMode = 'vanilla';
+            <div class="dashboard-grid">
+                <div class="glass-panel metric-card">
+                    <h3>Overall accuracy</h3>
+                    <div class="value text-gradient" id="metric-acc">--</div>
+                </div>
+                <div class="glass-panel metric-card">
+                    <h3>Repairs triggered</h3>
+                    <div class="value text-gradient-secondary" id="metric-rep-trig">--</div>
+                </div>
+                <div class="glass-panel metric-card">
+                    <h3>Repair success rate</h3>
+                    <div class="value" id="metric-rep-succ">--</div>
+                </div>
+            </div>
 
-        // Mode selector logic
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                selectedMode = btn.dataset.mode;
-            });
-        });
+            <div class="glass-panel">
+                <h3 style="margin-bottom: 1.75rem">System performance comparison</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Architecture</th>
+                                <th>Accuracy</th>
+                                <th>Avg latency</th>
+                                <th>Test set</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-tbody">
+                            <!-- Populated dynamically -->
+                            <tr><td colspan="4">Loading results…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-        // Enter key to submit
-        document.getElementById('question-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendQuestion();
-            }
-        });
+        <!-- Page 4: About / Architecture -->
+        <section id="about-page" class="page">
+            <div class="page-header">
+                <span class="eyebrow">System reference</span>
+                <h2>Architecture overview</h2>
+                <p>Internal execution flow for the knowledge-shift pipelines.</p>
+            </div>
 
-        async function sendQuestion() {
-            const input = document.getElementById('question-input');
-            const question = input.value.trim();
-            if (!question) return;
-
-            // Reset UI State
-            hideAll();
-            document.getElementById('loading').classList.add('show');
-            document.getElementById('send-btn').disabled = true;
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        question: question,
-                        mode: selectedMode,
-                        top_k: 5,
-                    }),
-                });
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.detail || 'Request failed from server');
-                }
-
-                const data = await response.json();
-                displayResult(data);
-
-            } catch (err) {
-                const errDiv = document.getElementById('error-msg');
-                errDiv.textContent = err.message;
-                errDiv.style.display = 'flex';
-            } finally {
-                document.getElementById('loading').classList.remove('show');
-                document.getElementById('send-btn').disabled = false;
-            }
-        }
-
-        function hideAll() {
-            document.querySelectorAll('.result').forEach(el => {
-                el.classList.remove('show');
-                // Force animation re-trigger by reflow
-                void el.offsetWidth;
-            });
-            document.getElementById('error-msg').style.display = 'none';
-        }
-
-        function displayResult(data) {
-            // Answer Generation
-            const answerDiv = document.getElementById('answer-text');
-            const mainAnswer = data.answer_text || data.answer || 'No answer provided by the model.';
-            
-            let htmlContent = `<strong>${mainAnswer}</strong>`;
-            if (data.reasoning) {
-                htmlContent += `<span class="reasoning-text">${data.reasoning}</span>`;
-            }
-            answerDiv.innerHTML = htmlContent;
-            document.getElementById('result-answer').classList.add('show');
-
-            // Critique Logic
-            if (data.critique) {
-                const badge = document.getElementById('critique-badge');
-                const status = data.critique.status || 'UNKNOWN';
-                badge.textContent = status;
-                badge.className = 'badge badge-' + status.toLowerCase();
-                document.getElementById('critique-reason').textContent = data.critique.reason || 'No specific reason provided.';
-                document.getElementById('result-critique').classList.add('show');
-            }
-
-            // Repair Logic
-            if (data.repair && data.repair.repair_triggered) {
-                const successful = data.repair.repair_successful;
-                const successEl = document.getElementById('repair-success');
+            <div class="glass-panel" style="margin-bottom: 1.75rem;">
+                <h3 style="margin-bottom: 1.5rem">Execution tree</h3>
                 
-                successEl.textContent = successful ? 'Yes' : 'No';
-                successEl.style.color = successful ? 'var(--status-green)' : 'var(--status-red)';
-                
-                document.getElementById('repair-reasoning-text').textContent = data.repair.reasoning || 'N/A';
-                document.getElementById('result-repair').classList.add('show');
-            }
+                <div class="flowchart-container">
+                    <pre>
+                [ User Query ]
+                      ↓
+              Query Embedding
+                      ↓
+               FAISS Retrieval
+                      ↓
+              Retrieved Evidence
+                      ↓
+               Azure GPT-5 mini
+                      ↓
+                 [ Answer ]
+                      ↓
+               Self-Critique
+                      ↓
+                 Supported?
+                /          \
+              YES      NO/UNCERTAIN
+               |            |
+               |            ↓
+               |    Additional Retrieval
+               |            ↓
+               |      Knowledge Repair
+               |            ↓
+               └─────> Final Answer
+                    </pre>
+                </div>
+            </div>
 
-            // Sources List
-            if (data.sources && data.sources.length > 0) {
-                const list = document.getElementById('sources-list');
-                list.innerHTML = data.sources.map(s => `
-                    <div class="source-item">
-                        <div class="source-header">
-                            <span class="chunk-id">${s.chunk_id}</span>
-                            <span class="score-badge">score: ${(s.score || 0).toFixed(4)}</span>
-                        </div>
-                        <div class="text-preview">${(s.text || '').substring(0, 250)}...</div>
-                    </div>
-                `).join('');
-                document.getElementById('result-sources').classList.add('show');
-            }
-        }
-    </script>
+            <div class="glass-panel">
+                <h3 style="margin-bottom: 1.5rem">Subsystem breakdown</h3>
+                
+                <div style="margin-bottom: 1.75rem">
+                    <h4 class="text-gradient">1. Vanilla RAG</h4>
+                    <p style="color:var(--ink-muted); margin-top:0.4rem">Retrieves initial vector matches and pipes directly into the generator. Zero-shot execution.</p>
+                </div>
+                
+                <div style="margin-bottom: 1.75rem">
+                    <h4 class="text-gradient">2. Self-Critique RAG</h4>
+                    <p style="color:var(--ink-muted); margin-top:0.4rem">Appends an LLM-as-a-judge layer to categorize the output as SUPPORTED, UNSUPPORTED, or UNCERTAIN against the evidence.</p>
+                </div>
+                
+                <div style="margin-bottom: 1.75rem">
+                    <h4 class="text-gradient-secondary">3. Knowledge-Repair RAG</h4>
+                    <p style="color:var(--ink-muted); margin-top:0.4rem">Intercepts UNSUPPORTED or UNCERTAIN generations. Dispatches secondary context retrieval and loops back for final resolution.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/static/app.js"></script>
 </body>
 </html>

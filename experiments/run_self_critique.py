@@ -109,7 +109,10 @@ def run_self_critique(num_questions: int | None = None, top_k: int = 5, sample_f
             indices = json.load(f)
         questions = [questions[i] for i in indices]
     if num_questions:
-        questions = questions[:num_questions]
+        import json as _json
+        with open("data/eval_sample_indices.json") as f:
+            sample_indices = set(_json.load(f))
+        questions = [q for i, q in enumerate(questions) if i in sample_indices]
     print(f"Evaluating {len(questions)} questions with {max_workers} workers")
 
     # Init services
